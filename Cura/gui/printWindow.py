@@ -6,6 +6,12 @@ import time
 import sys
 import os
 import ctypes
+import csv
+import datetime
+
+tempDataFile = None
+tempDataCSV = None
+tempDataWriter = None
 
 #TODO: This does not belong here!
 if sys.platform.startswith('win'):
@@ -195,6 +201,12 @@ class printWindowPlugin(wx.Frame):
 			command[0](command[1])
 
 	def OnClose(self, e):
+		if tempDataCSV is not None:
+			tempDataFile.close()
+			tempDataWriter = None
+			tempDataCSV = None
+			tempDataFile = None
+
 		if self._printerConnection.hasActiveConnection():
 			if self._printerConnection.isPrinting():
 				pass #TODO: Give warning that the close will kill the print.
@@ -295,7 +307,17 @@ class printWindowPlugin(wx.Frame):
 		info = connection.getStatusString()
 		info += '\n'
 		if self._printerConnection.getTemperature(0) is not None:
-			info += 'Temperature: %d' % (self._printerConnection.getTemperature(0))
+			if tempDataCSV is None:
+				tempDataFile = open("C:\%s" % datetime.now().strftime("%Y%m%d-%H%M%S"), 'w')
+				tempDataCSV = csv.writer(tempDataFile)
+				tempDataWriter = csv.DictWriter(tempDataCSV, fieldnames=['DateTime','Temperature'])
+				tempDataWriter.writeheader()
+			temp = self._printerConnection.getTemperature(0)
+			#info += 'Temperature: %d' % (self._printerConnection.getTemperature(0))
+			info += 'Temperature: %d' % temp
+			tempDataWriter.writerow({'DateTime':datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 
+									 'Temperature':temp})
+
 		if self._printerConnection.getBedTemperature() > 0:
 			info += ' Bed: %d' % (self._printerConnection.getBedTemperature())
 		if self._infoText is not None:
@@ -389,6 +411,11 @@ class printWindowBasic(wx.Frame):
 			self.Refresh()
 
 	def OnClose(self, e):
+		if tempDataCSV is not None:
+			tempDataFile.close()
+			tempDataWriter = None
+			tempDataCSV = None
+			tempDataFile = None
 		if self._printerConnection.hasActiveConnection():
 			if self._printerConnection.isPrinting():
 				pass #TODO: Give warning that the close will kill the print.
@@ -437,8 +464,16 @@ class printWindowBasic(wx.Frame):
 			self.progress.SetValue(0)
 		info = connection.getStatusString()
 		info += '\n'
+
 		if self._printerConnection.getTemperature(0) is not None:
-			info += 'Temperature: %d' % (self._printerConnection.getTemperature(0))
+			temp = self._printerConnection.getTemperature(0)
+			if tempDataCSV is None:
+				tempDataFile = open("C:\%s" % datetime.now().strftime("%Y%m%d-%H%M%S"), 'w')
+				tempDataCSV = csv.writer(tempDataFile)
+				tempDataWriter = csv.DictWriter(tempDataCSV, fieldnames=['DateTime','Temperature'])
+			tempDataWriter.writerow({'DateTime':datetime.now().strftime("%m/%d/%Y %H:%M:%S"), 
+									 'Temperature':temp})
+			info += 'Temperature: %d' % temp
 		if self._printerConnection.getBedTemperature() > 0:
 			info += ' Bed: %d' % (self._printerConnection.getBedTemperature())
 		info += '\n\n'

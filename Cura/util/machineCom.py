@@ -136,7 +136,7 @@ class MachineComPrintCallback(object):
 	def mcLog(self, message):
 		pass
 	
-	def mcTempUpdate(self, temp, bedTemp, targetTemp, bedTargetTemp):
+	def mcTempUpdate(self, temp, bedTemp, targetTemp, bedTargetTemp, pressure):
 		pass
 	
 	def mcStateChange(self, state):
@@ -193,6 +193,7 @@ class MachineCom(object):
 		self._targetTemp = [0] * self._extruderCount
 		self._bedTemp = 0
 		self._bedTargetTemp = 0
+		self._pressure = 0
 		self._gcodeList = None
 		self._gcodePos = 0
 		self._commandQueue = queue.Queue()
@@ -389,7 +390,12 @@ class MachineCom(object):
 						self._bedTemp = float(re.search("B: *([0-9\.]*)", line).group(1))
 					except:
 						pass
-				self._callback.mcTempUpdate(self._temp, self._bedTemp, self._targetTemp, self._bedTargetTemp)
+				if 'P:' in line:
+					try:
+						self._pressure = float(re.search("P: *([0-9\.]*)", line).group(1))
+					except:
+						pass
+				self._callback.mcTempUpdate(self._temp, self._bedTemp, self._targetTemp, self._bedTargetTemp, self._pressure)
 				#If we are waiting for an M109 or M190 then measure the time we lost during heatup, so we can remove that time from our printing time estimate.
 				if not 'ok' in line and self._heatupWaitStartTime != 0:
 					t = time.time()
